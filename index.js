@@ -37,7 +37,8 @@ const userSchema= new mongoose.Schema({
     name:String,
     email:String,
     password:String,
-    googleId:String
+    googleId:String,
+    facebookId:String
     
 })
 
@@ -100,6 +101,37 @@ passport.use(new GoogleStrategy({
 // ------------------Google Auth----------------
 
 
+
+
+// ------------------facebook Auth----------------
+var FacebookStrategy = require("passport-facebook").Strategy;
+
+passport.use(new FacebookStrategy({
+    clientID: 634026394268336,
+    clientSecret:  '60dbfcdf6d42af2e1c578994c7a7ecd6',
+    callbackURL: "http://localhost:3000/auth/facebook/secrets",
+    profileFields: ["id", "emails", "name"],
+  },
+  function(accessToken, refreshToken, profile, cb) {
+      console.log(profile);
+    User.findOrCreate({ facebookId:profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
+
+app.get('/auth/facebook',
+  passport.authenticate('facebook'));
+
+app.get('/auth/facebook/secrets',
+  passport.authenticate('facebook', { failureRedirect: '/login' }),
+  function(req, res) {
+    // Successful authentication, redirect home.
+    console.log(req.user, req.isAuthenticated());
+    res.redirect('/secrets');
+  });
+
+// ------------------facebook Auth----------------
 
 
 
