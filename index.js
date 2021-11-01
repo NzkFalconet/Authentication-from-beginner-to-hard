@@ -7,6 +7,7 @@ app.use(bodyparser.urlencoded({extended:true}));
 const session = require('express-session')
 const passport= require('passport');
 const passportLocalMongoose= require('passport-local-mongoose');
+var findOrCreate = require('mongoose-findorcreate')
 
 //Connecting to Mongoose
 const mongoose = require('mongoose');
@@ -35,11 +36,15 @@ mongoose.connect('mongodb://localhost:27017/ShanDB');
 const userSchema= new mongoose.Schema({
     name:String,
     email:String,
-    password:String
+    password:String,
+    googleId:String
+    
 })
 
 
 userSchema.plugin(passportLocalMongoose);
+userSchema.plugin(findOrCreate);
+
 
 //Creating a Mongoose Model
 const User = new mongoose.model('User',userSchema);
@@ -65,6 +70,39 @@ passport.serializeUser(function (user, done) {
   passport.deserializeUser(function (user, done) {
     done(null, user);
   });
+
+
+// ------------------Google Auth----------------
+
+
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+
+passport.use(new GoogleStrategy({
+    clientID: "589668484178-3ds95d8f086u3i5cgnf3h2jq6ukbie1e.apps.googleusercontent.com",
+    clientSecret: "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",
+    callbackURL: "http://localhost:3000/auth/google/secrets",
+    userProfileURL: 'https://www.googleapis.com/oauth2/v3/userinfo',
+  },
+  function(accessToken, refreshToken, profile, cb) {
+      console.log(profile);
+    User.findOrCreate({ googleId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
+
+
+
+
+
+
+
+// ------------------Google Auth----------------
+
+
+
+
+
 
 //secrets Route
 app.get('/secrets',(req,res)=>{
@@ -114,6 +152,15 @@ app.post('/register',(req,res)=>{
 
 })
 
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile'] }));
+
+app.get('/auth/google/secrets', 
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  function(req, res) {
+    // Successful authentication, redirect home.
+    res.redirect('/secrets');
+  });
 
 
 //Login Route
